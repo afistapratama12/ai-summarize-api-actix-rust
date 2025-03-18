@@ -1,0 +1,6 @@
+/target
+/upload/*
+!/upload/.gitkeep
+/migration/target
+
+.env

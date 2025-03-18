@@ -1,0 +1,37 @@
+[package]
+name = "ai-summary-actix"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix = "0.13.0"
+actix-web = "4.2.1"
+actix-multipart = "0.7.0"
+
+chrono = { version = "0.4.22", features = ["serde"] }
+dotenv = "0.15.0"
+serde = { version = "1.0.145", features = ["derive"] }
+serde_json = "1.0.86"
+sea-orm = { version = "1.1.0", features = [ "sqlx-postgres", "runtime-tokio-native-tls", "macros" ] }
+actix-cors = "0.6.4"
+uuid = { version = "1.2.2", features = ["v4"] }
+bcrypt = "0.17.0"
+reqwest = { version = "0.11", features = ["json"] }
+futures= "0.3"
+pdf-extract = "0.7"
+docx-rust = "0.1.9"
+# actix_cors = "0.5.6"
+
+# DEPENDENCIES SPECIFIC TO AUTH
+actix-web-httpauth = "0.8.0"
+argonautica = "0.2.0"
+hmac = "0.12.1"
+jsonwebtoken = "8"
+sha2 = "0.10.6"
+
+# tutorial actix = https://github.com/wpcodevo/simple-api-actix-web/blob/master/Cargo.toml
+
+# api docs
+utoipa = { version = "4", features = ["actix_extras"] }
+utoipa-swagger-ui = { version = "4", features = ["actix-web"] }
+# tutorial docs https://www.shuttle.dev/blog/2024/04/04/using-openapi-rust

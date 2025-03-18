@@ -33,3 +33,7 @@ Here the step for migration:
 Make sure to create file `.env` for environment requirement. Please check the example environment `.env.example`
 
 Then, run `cargo run`
+
+## API Documentation
+
+After running the application, you can check documentation in path `<localhost>/swagger-ui/index.html`

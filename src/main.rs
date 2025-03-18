@@ -39,7 +39,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             // .wrap(cors)
             .wrap(Logger::default())
-            .service(SwaggerUi::new("/swagger-ui").url("/api-doc/openapi.json", openapi.clone()))
+            .service(SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-doc/openapi.json", openapi.clone()))
             .app_data(db_data.clone())
             .service(root)
             .service(ping)

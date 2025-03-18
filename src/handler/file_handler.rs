@@ -12,19 +12,16 @@ use uuid::Uuid;
 use pdf_extract;
 use docx_rust::*;
 
-use crate::{
-  handler::{
-    request::SummaryRequest, 
-    response::{error_resp, SummarizeResponse, UploadResponse}
-  }, 
-  // libs::jwt::validate_jwt
+use crate::handler::{
+  request::SummaryRequest, 
+  response::{error_resp, SummarizeResponse, UploadResponse}
 };
 use crate::libs::openai::chat_completion;
 
 #[utoipa::path(
   post,
   path = "/file/upload",
-  // security(("bearerAuth" = [])),
+  security(("bearerAuth" = [])),
   request_body(content_type = "multipart/form-data", content = String, description = "File to upload"),
   responses(
     (status = 200, description = "upload successfully", body = UploadResponse),
@@ -88,7 +85,7 @@ pub async fn upload_file_handler(_auth: BearerAuth, mut payload: Multipart) -> i
 #[utoipa::path(
   post,
   path = "/file/summarize",
-  // security(("bearerAuth" = [])),
+  security(("bearerAuth" = [])),
   request_body = SummaryRequest,
   responses(
     (status = 200, description = "file summarize successfully", body = SummarizeResponse),

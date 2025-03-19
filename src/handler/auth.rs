@@ -1,12 +1,16 @@
 use actix_web::{post, web, HttpResponse, Responder};
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use sqlx::{Pool, Postgres};
+use futures::TryStreamExt as _;
+use chrono;
 
-use crate::handler::{
-  request::{RegisterRequest, LoginRequest},
-  response::{error_resp, LoginResponse, RegisterResponse}
+use crate::{
+  model::users::Users,
+  libs::{hash, jwt},
+  handler::{  
+    request::{RegisterRequest, LoginRequest},
+    response::{error_resp, LoginResponse, RegisterResponse}
+  },
 };
-use crate::libs::{hash, jwt};
-use crate::model::{self, users::{ActiveModel, Entity as User}};
 
 #[utoipa::path(
   post,
@@ -19,36 +23,35 @@ use crate::model::{self, users::{ActiveModel, Entity as User}};
   ),
 )]
 #[post("/auth/login")]
-pub async fn login(db: web::Data<DatabaseConnection>, req: web::Json<LoginRequest>) -> impl Responder {
+pub async fn login(db: web::Data<Pool<Postgres>>, req: web::Json<LoginRequest>) -> impl Responder {
   if !req.email.contains("@") { 
     error_resp("invalid email format", 400); 
   }
-  
-  let user = User::find()
-    .filter(model::users::Column::Email.contains(req.email.clone()))
-    .one(db.as_ref())
-    .await.unwrap();
 
-  let user = match user {
-    Some(user) => user,
-    None => return error_resp("error find user", 500),
+  let mut stream = sqlx::query_as::<_, Users>("SELECT * FROM users WHERE email = $1")
+    .bind(req.email.clone())
+    .fetch(db.as_ref());
+
+  let user = match stream.try_next().await {
+    Ok(Some(user)) => user,
+    Ok(None) => return error_resp("error find user", 500),
+    Err(e) => {
+      eprintln!("Error finding user: {:?}", e);
+      return error_resp("error find user", 500);
+    }
   };
 
-  if user.email.is_empty() || user.password.is_empty() {
-    return error_resp("invalid email or password", 400);
-  }
-
   // check password
-  if !hash::verify_password(req.password.as_str(), user.password.as_str()) {
+  if !hash::verify_password(&req.password, &user.password) {
     return error_resp("invalid email or password", 400);
   }
 
   let token = jwt::generate_jwt(user.id.as_str(), &user.email);
 
   HttpResponse::Ok().json(LoginResponse{
-    name: user.name,
-    email: user.email,
-    token,
+    name: &user.name,
+    email: &user.email,
+    token: &token,
   })
 }
 
@@ -66,34 +69,36 @@ pub async fn login(db: web::Data<DatabaseConnection>, req: web::Json<LoginReques
   //)
 )]
 #[post("/auth/register")]
-pub async fn register(db: web::Data<DatabaseConnection>, req: web::Json<RegisterRequest>) -> impl Responder {
+pub async fn register(db: web::Data<Pool<Postgres>>, req: web::Json<RegisterRequest>) -> impl Responder {
   if !req.email.contains("@") {
     return error_resp("invalid email format", 400)
   }
 
-  let new_id = uuid::Uuid::new_v4().to_string();
-  let date_now = chrono::Utc::now().naive_utc();
+  let stream = sqlx::query("INSERT INTO users (id, name, email, password, created_at) VALUES ($1, $2, $3, $4, $5)")
+    .bind(uuid::Uuid::new_v4().to_string())
+    .bind(req.name.clone())
+    .bind(req.email.clone())
+    .bind( hash::hash_password(req.password.clone().as_str()))
+    .bind(chrono::Utc::now())
+    .execute(db.as_ref());
 
-  let hash_password = hash::hash_password(req.password.clone().as_str());
-
-  let new_user = ActiveModel {
-    id: Set(new_id.clone()),
-    name: Set(req.name.clone()),
-    email: Set(req.email.clone()),
-    password: Set(hash_password),
-    created_at: Set(date_now.clone()),
-    ..Default::default()
-  };
-
-  new_user.insert(db.as_ref()).await.map_err(|e| {
-    eprintln!("Error inserting new user: {:?}", e);
-    error_resp("error inserting new user", 500)
-  }).unwrap();
-
+  match stream.await {
+    Ok(_) => {},
+    Err(e) => {
+      eprintln!("Error inserting new user: {:?}", e);
+      // get error message from sqlx
+      let error_message = e.to_string();
+      if error_message.contains("duplicate key value violates unique constraint") {
+        return error_resp("email already registered", 400);
+      } else {
+        return error_resp("error inserting new user", 500);
+      }
+    }
+  }
 
   HttpResponse::Created().json(RegisterResponse{
-    name: req.name.clone(),
-    email: req.email.clone(),
-    message: "user registered successfully".to_string(),
+    name: &req.name,
+    email: &req.email,
+    message: "user registered successfully",
   })
 }

@@ -77,8 +77,8 @@ pub async fn upload_file_handler(_auth: BearerAuth, mut payload: Multipart) -> i
   }
 
   return HttpResponse::Ok().json(UploadResponse{
-    file_id,
-    file_ext: extension,
+    file_id: &file_id,
+    file_ext: &extension,
   });
 }
 
@@ -118,7 +118,6 @@ pub async fn summarize(_auth: BearerAuth, req: web::Json<SummaryRequest>) -> imp
     return error_resp("Unsupported file type", 400);
   }
 
-
   let summary = chat_completion(&extracted_text.clone()).await;
   let summary = match summary {
     Ok(_) => summary.unwrap(),
@@ -128,8 +127,8 @@ pub async fn summarize(_auth: BearerAuth, req: web::Json<SummaryRequest>) -> imp
   };
 
   HttpResponse::Ok().json(SummarizeResponse{
-    summary: summary,
-    content: extracted_text,
+    summary: &summary,
+    content: &extracted_text,
   })
 }
 

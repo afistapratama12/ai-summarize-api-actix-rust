@@ -20,14 +20,13 @@ reqwest = { version = "0.11", features = ["json"] }
 futures= "0.3"
 pdf-extract = "0.7"
 docx-rust = "0.1.9"
+sqlx = { version = "0.8", features = [ "runtime-async-std", "postgres" ] }
+
 # actix_cors = "0.5.6"
 
 # DEPENDENCIES SPECIFIC TO AUTH
 actix-web-httpauth = "0.8.0"
-argonautica = "0.2.0"
-hmac = "0.12.1"
 jsonwebtoken = "8"
-sha2 = "0.10.6"
 
 # tutorial actix = https://github.com/wpcodevo/simple-api-actix-web/blob/master/Cargo.toml
 

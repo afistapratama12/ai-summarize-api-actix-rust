@@ -37,3 +37,9 @@ Then, run `cargo run`
 ## API Documentation
 
 After running the application, you can check documentation in path `<localhost>/swagger-ui/index.html`
+
+## Update
+
+`19-03-2025`
+  - change from using `sea-orm` to `sqlx`, because more native and lightweight
+  - simplified apidocs swagger to `docs.rs`

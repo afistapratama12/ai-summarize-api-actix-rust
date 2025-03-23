@@ -43,3 +43,10 @@ After running the application, you can check documentation in path `<localhost>/
 `19-03-2025`
   - change from using `sea-orm` to `sqlx`, because more native and lightweight
   - simplified apidocs swagger to `docs.rs`
+
+`23-03-2025`
+  - implement service layer for business logic code
+  - apply 2 language summary input, Indonesia and English
+  - can handle multiple file summary
+  - can interact with the file
+  - add docker compose for build db and minio

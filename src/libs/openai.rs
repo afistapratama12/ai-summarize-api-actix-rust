@@ -37,10 +37,11 @@ pub async fn chat_completion(text: &str) -> Result<String, Box<dyn Error>> {
   let api_key = env::var("OPENAI_API_KEY").unwrap_or("".to_string());
 
   let client = Client::new();
+  let max_token = if text.len() > 1000 { 1000 } else { 500 };
 
   let request_body = ChatRequest {
     model: "gpt-4o".to_string(),
-    max_tokens: 500,
+    max_tokens: max_token,
     messages: vec![
         Message {
           role: "system".to_string(),
@@ -48,7 +49,7 @@ pub async fn chat_completion(text: &str) -> Result<String, Box<dyn Error>> {
         },
         Message {
           role: "user".to_string(),
-          content: format!("Summarize the following text:\n\n{}", text),
+          content: text.to_string(),
         },
     ],
   };

@@ -1,15 +1,12 @@
 use actix_web::{post, web, HttpResponse, Responder};
-use sqlx::{Pool, Postgres};
-use futures::TryStreamExt as _;
-use chrono;
+use std::sync::Arc;
 
 use crate::{
-  model::users::Users,
-  libs::{hash, jwt},
   handler::{  
-    request::{RegisterRequest, LoginRequest},
+    request::{LoginRequest, RegisterRequest},
     response::{error_resp, LoginResponse, RegisterResponse}
-  },
+  }, 
+  service::auth::AuthService
 };
 
 #[utoipa::path(
@@ -23,35 +20,21 @@ use crate::{
   ),
 )]
 #[post("/auth/login")]
-pub async fn login(db: web::Data<Pool<Postgres>>, req: web::Json<LoginRequest>) -> impl Responder {
+pub async fn login(service: web::Data<Arc<AuthService>>, req: web::Json<LoginRequest>) -> impl Responder {
   if !req.email.contains("@") { 
     error_resp("invalid email format", 400); 
   }
 
-  let mut stream = sqlx::query_as::<_, Users>("SELECT * FROM users WHERE email = $1")
-    .bind(req.email.clone())
-    .fetch(db.as_ref());
-
-  let user = match stream.try_next().await {
-    Ok(Some(user)) => user,
-    Ok(None) => return error_resp("error find user", 500),
-    Err(e) => {
-      eprintln!("Error finding user: {:?}", e);
-      return error_resp("error find user", 500);
-    }
+  let res = service.login(&req.email, &req.password).await;
+  let res = match res {
+    Ok(res) => res,
+    Err(e) => return error_resp(&e, 400),
   };
 
-  // check password
-  if !hash::verify_password(&req.password, &user.password) {
-    return error_resp("invalid email or password", 400);
-  }
-
-  let token = jwt::generate_jwt(user.id.as_str(), &user.email);
-
   HttpResponse::Ok().json(LoginResponse{
-    name: &user.name,
-    email: &user.email,
-    token: &token,
+    name: &res.name,
+    email: &req.email,
+    token: &res.token,
   })
 }
 
@@ -69,34 +52,24 @@ pub async fn login(db: web::Data<Pool<Postgres>>, req: web::Json<LoginRequest>) 
   //)
 )]
 #[post("/auth/register")]
-pub async fn register(db: web::Data<Pool<Postgres>>, req: web::Json<RegisterRequest>) -> impl Responder {
+pub async fn register(service: web::Data<Arc<AuthService>>, req: web::Json<RegisterRequest>) -> impl Responder {
   if !req.email.contains("@") {
     return error_resp("invalid email format", 400)
   }
 
-  let stream = sqlx::query("INSERT INTO users (id, name, email, password, created_at) VALUES ($1, $2, $3, $4, $5)")
-    .bind(uuid::Uuid::new_v4().to_string())
-    .bind(req.name.clone())
-    .bind(req.email.clone())
-    .bind( hash::hash_password(req.password.clone().as_str()))
-    .bind(chrono::Utc::now())
-    .execute(db.as_ref());
-
-  match stream.await {
-    Ok(_) => {},
+  let res = service.register(&req.name, &req.email, &req.password).await;
+  let _res = match res {
+    Ok(res) => res,
     Err(e) => {
-      eprintln!("Error inserting new user: {:?}", e);
-      // get error message from sqlx
-      let error_message = e.to_string();
-      if error_message.contains("duplicate key value violates unique constraint") {
-        return error_resp("email already registered", 400);
+      if e.contains("email already exist") {
+        return error_resp(e.as_str(), 400);
       } else {
-        return error_resp("error inserting new user", 500);
+        return error_resp(e.as_str(), 500);
       }
     }
-  }
+  };
 
-  HttpResponse::Created().json(RegisterResponse{
+  HttpResponse::Created().json(RegisterResponse {
     name: &req.name,
     email: &req.email,
     message: "user registered successfully",

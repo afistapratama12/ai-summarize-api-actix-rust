@@ -9,3 +9,8 @@ pub struct Users {
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
 }
+
+pub struct Login {
+    pub name: String,
+    pub token: String,
+}

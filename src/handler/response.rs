@@ -20,13 +20,12 @@ pub struct LoginResponse<'a> {
 pub struct UploadResponse<'a> {
   pub file_id: &'a str,
   pub file_ext: &'a str,
-  // pub extracted_text: String,
+  pub file_name_upload: &'a str,
 }
 
 #[derive(Clone, Debug, Serialize, ToSchema)]
 pub struct SummarizeResponse<'a> {
   pub summary: &'a str,
-  pub content: &'a str,
 }
 
 #[derive(Clone, Debug, Serialize, ToSchema)]

@@ -17,9 +17,16 @@ pub struct LoginRequest {
 #[allow(dead_code)]
 #[derive(Clone, Deserialize, ToSchema)]
 pub struct SummaryRequest {
+  pub files: Vec<FileSummary>,
+  pub lang: String,
+  pub input_text: Option<String>,
+}
+
+#[derive(Clone, Deserialize, ToSchema)]
+pub struct FileSummary {
   pub file_id: String,
   pub file_ext: String,
-  pub input_text: Option<String>,
+  pub file_name_upload: String,
 }
 
 // #[derive(Clone, Deserialize)]
